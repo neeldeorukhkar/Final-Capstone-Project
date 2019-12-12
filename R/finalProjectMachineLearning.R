@@ -5,6 +5,8 @@ library(tibble)
 library(lubridate)
 library(ggplot2)
 library(caret)
+library(eeptools)
+library(repr)
 
 setwd("C:/Users/DeorukhkarN/OneDrive - Kantar/Attachments/Principles-of-Machine-Learning-R/Final-Capstone-Project/R")
 
@@ -32,6 +34,12 @@ handleDupRecordsFunc <- function(df, x){
   return(df)
 }
 
+age <- function(dob, age.day = today(), units = "years", floor = TRUE) {
+  calc.age = interval(dob, age.day) / duration(num = 1, units = units)
+  if (floor) return(as.integer(floor(calc.age)))
+  return(calc.age)
+}
+
 AdvWorksCusts <- handleDupRecordsFunc(AdvWorksCusts, "YearlyIncome")
 AW_AveMonthSpend <- handleDupRecordsFunc(AW_AveMonthSpend, "AveMonthSpend")
 AW_BikeBuyer <- handleDupRecordsFunc(AW_BikeBuyer, "BikeBuyer")
@@ -39,14 +47,82 @@ AW_BikeBuyer <- handleDupRecordsFunc(AW_BikeBuyer, "BikeBuyer")
 finalAdvWorksCusts <- plyr::join(AdvWorksCusts, AW_AveMonthSpend, by = "CustomerID", type = "left")
 finalAdvWorksCusts <- plyr::join(finalAdvWorksCusts, AW_BikeBuyer, by = "CustomerID", type = "left")
 
+#Drop Not needed Columns
+finalAdvWorksCusts$PhoneNumber = NULL
+finalAdvWorksCusts$Title = NULL
+finalAdvWorksCusts$FirstName = NULL
+finalAdvWorksCusts$MiddleName = NULL
+finalAdvWorksCusts$LastName = NULL
+finalAdvWorksCusts$Suffix = NULL
+finalAdvWorksCusts$AddressLine1 = NULL
+finalAdvWorksCusts$AddressLine2 = NULL
+finalAdvWorksCusts$City = NULL
+finalAdvWorksCusts$StateProvinceName = NULL
+finalAdvWorksCusts$PostalCode = NULL
+
+
 #Check missing value in Columns.
 sapply(finalAdvWorksCusts, function(x) {sum(is.na(x))})
 
 numcols <- c('HomeOwnerFlag', 'NumberCarsOwned', 'NumberChildrenAtHome', 'TotalChildren', 'YearlyIncome')
 for(col in numcols){
-  temp = AdvWorksCusts[,col]
-  AdvWorksCusts[,col] = ifelse(temp == '?', NA, AdvWorksCusts[,col])
+  temp = finalAdvWorksCusts[,col]
+  finalAdvWorksCusts[,col] = ifelse(temp == '?', NA, finalAdvWorksCusts[,col])
 }
 
+#####################Data Exploration and Assignment Questions####################################
+
+#Assignment Questions
+summary(finalAdvWorksCusts)
+sd(finalAdvWorksCusts$AveMonthSpend)
+
+finalAdvWorksCusts %>% group_by(Occupation) %>% summarise(medIncome = median(YearlyIncome)) %>% arrange(medIncome)
+
+finalAdvWorksCusts$BirthDate <- as.Date(finalAdvWorksCusts$BirthDate, format = "%Y-%m-%d")
+glimpse(finalAdvWorksCusts)
+finalAdvWorksCusts$age <- age(finalAdvWorksCusts$BirthDate, age.day = "1998-01-01")
+finalAdvWorksCusts$BirthDate = NULL
+
+#for(col in colnames(finalAdvWorksCusts)){
+#  if(is.character(finalAdvWorksCusts[, col])){
+#    cat('\n')
+#    cat(paste('Frequency table for', col))
+#    print(table(finalAdvWorksCusts[, col]))
+#  }
+#}
+
+#Assignment Question 8 - Based on their age at the time when the data was collected (1st January 1998),which group of customers accounts for the highest AveMonthSpend
+numcols = c('age')
+plot_scatter_cl = function(df, cols, col_y = 'AveMonthSpend', alpha = 1.0){
+  options(repr.plot.width=5, repr.plot.height=3.5) # Set the initial plot area dimensions
+  for(col in cols){
+    p = ggplot(df, aes_string(col, col_y)) +
+      geom_density_2d() +
+      geom_point(aes(color = Gender), alpha = alpha) +
+      ggtitle(paste('Scatter plot of', col_y, 'vs.', col,
+                    '\n and color by Gender'))
+    print(p)
+  }
+}
+plot_scatter_cl(finalAdvWorksCusts, numcols, alpha = 0.2)
+
+#Assignment Question 9 - Which of the following are true
+# 1. Married customers have a higher median AvgMonthSpend than single customers.
+# 2. Customers with no car have a higher median AvgMonthSpend than customers with three or more cars.
+# 3. Male customers have a higher median AvgMonthSpend than female customers.
+# 4. Female customers have a wider range of AvgMonthSpend values than male customers.
+# 5. Customers with no children at home have a lower median AvgMonthSpend values than customers with one or more children at home.
+  
+plot_box = function(df, cols, col_y = 'AveMonthSpend'){
+  options(repr.plot.width=4, repr.plot.height=3.5) # Set the initial plot area dimensions
+  for(col in cols){
+    p = ggplot(df, aes_string(col, col_y)) +
+      geom_boxplot() +
+      ggtitle(paste('Box plot of', col, 'vs.', col_y))
+    print(p)
+  }
+}
+cat_cols = c('MaritalStatus', 'NumberCarsOwned', 'Gender', 'TotalChildren')
+plot_box(finalAdvWorksCusts, cat_cols)
 
 

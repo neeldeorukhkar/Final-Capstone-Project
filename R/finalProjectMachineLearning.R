@@ -150,3 +150,77 @@ table(finalAdvWorksCusts$BikeBuyer, finalAdvWorksCusts$Gender)
 
 #5. 
 table(finalAdvWorksCusts$BikeBuyer, finalAdvWorksCusts$MaritalStatus)
+
+
+#####Build Classification Model#################
+
+#Data Preparation
+glimpse(finalAdvWorksCusts)
+finalAdvWorksCusts <- finalAdvWorksCusts %>% 
+                        select(-AveMonthSpend)
+
+options(repr.plot.width=4, repr.plot.height=4)
+
+#Aggregate Categories to make variable more useful
+#Correlations
+corCols <- c("NumberCarsOwned","NumberChildrenAtHome","TotalChildren", "YearlyIncome","age")
+cor(finalAdvWorksCusts[,corCols])
+
+#Dropping Highly Colinear Columns : TotalChildren and NumberChildrenAtHome
+finalAdvWorksCusts$NumberChildrenAtHome = NULL
+
+#NumberCarsOwned
+table(finalAdvWorksCusts$NumberCarsOwned)
+
+finalAdvWorksCusts$NumberCarsOwned <- ifelse(finalAdvWorksCusts$NumberCarsOwned %in% c(0,1),0, ifelse(finalAdvWorksCusts$NumberCarsOwned == 2, 1, 2))
+
+finalAdvWorksCusts$NumberCarsOwned <- ordered(finalAdvWorksCusts$NumberCarsOwned, levels = 0:2,
+                                              labels = c("Zero_One", "Two", "Three_Four"))
+
+table(finalAdvWorksCusts$NumberCarsOwned)
+
+ggplot(finalAdvWorksCusts, aes(NumberCarsOwned,YearlyIncome)) +
+  geom_boxplot()
+
+#TotalChildren
+table(finalAdvWorksCusts$TotalChildren)
+
+finalAdvWorksCusts$TotalChildren <- ifelse(finalAdvWorksCusts$TotalChildren %in% c(0,1),0, ifelse(finalAdvWorksCusts$TotalChildren == 2, 1, 2))
+
+finalAdvWorksCusts$TotalChildren <- ordered(finalAdvWorksCusts$TotalChildren, levels = 0:2,
+                                              labels = c("Low", "Medium", "High"))
+
+table(finalAdvWorksCusts$TotalChildren)
+
+ggplot(finalAdvWorksCusts, aes(TotalChildren,YearlyIncome)) +
+  geom_boxplot()
+
+#TotalChildren
+table(finalAdvWorksCusts$NumberChildrenAtHome)
+
+finalAdvWorksCusts$TotalChildren <- ifelse(finalAdvWorksCusts$TotalChildren %in% c(0,1),0, ifelse(finalAdvWorksCusts$TotalChildren == 2, 1, 2))
+
+finalAdvWorksCusts$TotalChildren <- ordered(finalAdvWorksCusts$TotalChildren, levels = 0:2,
+                                            labels = c("Low", "Medium", "High"))
+
+table(finalAdvWorksCusts$TotalChildren)
+
+ggplot(finalAdvWorksCusts, aes(TotalChildren,YearlyIncome)) +
+  geom_boxplot()
+
+#YearlyIncome
+plot_hist = function(df, col = 'YearlyIncome', bins = 10){
+  options(repr.plot.width=4, repr.plot.height=3) # Set the initial plot area di
+  bw = (max(df[,col]) - min(df[,col]))/(bins + 1)
+  p = ggplot(df, aes_string(col)) +
+    geom_histogram(binwidth = bw, aes(y=..density..), alpha = 0.5) +
+    geom_density(aes(y=..density..), color = 'blue') +
+    geom_rug()
+  print(p)
+}
+plot_hist(finalAdvWorksCusts)
+
+#Create Log
+finalAdvWorksCusts[,c('log_YearlyIncome')] = log(finalAdvWorksCusts[,c('YearlyIncome')])
+
+plot_hist(finalAdvWorksCusts, col = 'log_YearlyIncome')

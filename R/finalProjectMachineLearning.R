@@ -112,10 +112,11 @@ plot_scatter_cl(finalAdvWorksCusts, numcols, alpha = 0.2)
 # 3. Male customers have a higher median AvgMonthSpend than female customers.
 # 4. Female customers have a wider range of AvgMonthSpend values than male customers.
 # 5. Customers with no children at home have a lower median AvgMonthSpend values than customers with one or more children at home.
-  
+ 
 plot_box = function(df, cols, col_y = 'AveMonthSpend'){
   options(repr.plot.width=4, repr.plot.height=3.5) # Set the initial plot area dimensions
   for(col in cols){
+    df[,col] <- as.factor(df[,col])
     p = ggplot(df, aes_string(col, col_y)) +
       geom_boxplot() +
       ggtitle(paste('Box plot of', col, 'vs.', col_y))
@@ -125,4 +126,27 @@ plot_box = function(df, cols, col_y = 'AveMonthSpend'){
 cat_cols = c('MaritalStatus', 'NumberCarsOwned', 'Gender', 'TotalChildren')
 plot_box(finalAdvWorksCusts, cat_cols)
 
+#Assignment Question no 10 = Which questions about bike buyers are true?
+# 1. The median YearlyIncome is higher for customers who bought a bike than for customers who didn't.
+# 2. The median number of cars owned by customers who bought a bike is lower than for customers who didn't.
+# 3. The most common occupation type for customers who bought a bike is skilled manual.
+# 4. Male customers are more likely to buy bikes than female customers.
+# 5. A maried customer is more likely to buy a bike.
 
+
+#1.
+cat_cols = c('BikeBuyer')
+plot_box(finalAdvWorksCusts, col = cat_cols, col_y = 'YearlyIncome')
+
+#2.
+cat_cols = c('BikeBuyer')
+plot_box(finalAdvWorksCusts, col = cat_cols, col_y = 'NumberCarsOwned')
+
+#3.
+table(finalAdvWorksCusts[finalAdvWorksCusts$BikeBuyer == 1, 'Occupation'])
+
+#4.
+table(finalAdvWorksCusts$BikeBuyer, finalAdvWorksCusts$Gender)
+
+#5. 
+table(finalAdvWorksCusts$BikeBuyer, finalAdvWorksCusts$MaritalStatus)

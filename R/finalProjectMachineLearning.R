@@ -232,8 +232,8 @@ library(pROC)
 
 #Check class balance
 table(finalAdvWorksCusts$BikeBuyer)
-finalAdvWorksCusts$BikeBuyer <- ifelse(finalAdvWorksCusts$BikeBuyer == 1, 'yes', 'no')
-finalAdvWorksCusts$BikeBuyer <- factor(finalAdvWorksCusts$BikeBuyer, levels = c('yes', 'no'))
+finalAdvWorksCusts$BikeBuyer <- ifelse(finalAdvWorksCusts$BikeBuyer == 0, 'no', 'yes')
+finalAdvWorksCusts$BikeBuyer <- factor(finalAdvWorksCusts$BikeBuyer, levels = c('no', 'yes'))
 finalAdvWorksCusts$BikeBuyer[1:5]
 
 #Split the Data into Training and Test Dataset

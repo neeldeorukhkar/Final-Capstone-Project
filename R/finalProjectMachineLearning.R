@@ -309,3 +309,20 @@ ROC_AUC = function(df){
   text(0.8, 0.2, paste('AUC = ', as.character(round(AUC, 3))))
 }
 ROC_AUC(test)
+
+#Given that there is a class imbalance, let's weight
+#the dataset
+weights = ifelse(training$BikeBuyer == 'yes', 0.66, 0.34)
+
+#Compute Weighted Logistic Regression Model
+logistic_mod_w = glm(BikeBuyer ~  Education + TotalChildren + NumberCarsOwned +
+                     Occupation + Gender + age + 
+                     MaritalStatus + HomeOwnerFlag + log_YearlyIncome,
+                   family = quasibinomial, data = training,
+                   weights = weights)
+
+test$probs = predict(logistic_mod_w, newdata = test, type = 'response')
+test[1:20, c('BikeBuyer','probs')]
+test = score_model(test, 0.5)
+logistic.eval(test)
+ROC_AUC(test)

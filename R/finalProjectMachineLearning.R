@@ -195,14 +195,6 @@ table(finalAdvWorksCusts$TotalChildren)
 ggplot(finalAdvWorksCusts, aes(TotalChildren,YearlyIncome)) +
   geom_boxplot()
 
-#TotalChildren
-table(finalAdvWorksCusts$NumberChildrenAtHome)
-
-finalAdvWorksCusts$TotalChildren <- ifelse(finalAdvWorksCusts$TotalChildren %in% c(0,1),0, ifelse(finalAdvWorksCusts$TotalChildren == 2, 1, 2))
-
-finalAdvWorksCusts$TotalChildren <- ordered(finalAdvWorksCusts$TotalChildren, levels = 0:2,
-                                            labels = c("Low", "Medium", "High"))
-
 table(finalAdvWorksCusts$TotalChildren)
 
 ggplot(finalAdvWorksCusts, aes(TotalChildren,YearlyIncome)) +
@@ -246,7 +238,7 @@ test = finalAdvWorksCusts[-partition,] # Create the test sample
 dim(test)
 
 #Transform Variable
-num_cols = c('YearlyIncome','log_YearlyIncome')
+num_cols = c('YearlyIncome','log_YearlyIncome','age')
 preProcValues <- preProcess(training[,num_cols], method = c("center", "scale"))
 training[,num_cols] = predict(preProcValues, training[,num_cols])
 test[,num_cols] = predict(preProcValues, test[,num_cols])
@@ -256,22 +248,24 @@ head(training[,num_cols])
 finalAdvWorksCusts$YearlyIncome = NULL
 
 #Logisitic Regression model
-glimpse(finalAdvWorksCusts)
+glimpse(training)
+
 set.seed(5566)
-logistic_mod = glm(BikeBuyer ~ CountryRegionName + Education +
+logistic_mod = glm(BikeBuyer ~  Education + TotalChildren + NumberCarsOwned +
                      Occupation + Gender + age + 
                      MaritalStatus + HomeOwnerFlag + log_YearlyIncome,
                      family = binomial, data = training)
 
 logistic_mod$coefficients
-
-test$probs = predict(logistic_mod, newdata = test, type = 'response')
-test[1:20, c('BikeBuyer','probs')]
+summary(logistic_mod)
 
 score_model = function(df, threshold){
   df$score = ifelse(df$probs < threshold, 'no', 'yes')
   df
 }
+
+test$probs = predict(logistic_mod, newdata = test, type = 'response')
+test[1:20, c('BikeBuyer','probs')]
 test = score_model(test, 0.5)
 test[1:20, c('BikeBuyer','probs','score')]
 

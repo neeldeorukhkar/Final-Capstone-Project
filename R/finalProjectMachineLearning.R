@@ -224,3 +224,94 @@ plot_hist(finalAdvWorksCusts)
 finalAdvWorksCusts[,c('log_YearlyIncome')] = log(finalAdvWorksCusts[,c('YearlyIncome')])
 
 plot_hist(finalAdvWorksCusts, col = 'log_YearlyIncome')
+
+
+#Logistic Regression Model
+library(ROCR)
+library(pROC)
+
+#Check class balance
+table(finalAdvWorksCusts$BikeBuyer)
+finalAdvWorksCusts$BikeBuyer <- ifelse(finalAdvWorksCusts$BikeBuyer == 1, 'yes', 'no')
+finalAdvWorksCusts$BikeBuyer <- factor(finalAdvWorksCusts$BikeBuyer, levels = c('yes', 'no'))
+finalAdvWorksCusts$BikeBuyer[1:5]
+
+#Split the Data into Training and Test Dataset
+set.seed(1955)
+## Randomly sample cases to create independent training and test data
+partition = createDataPartition(finalAdvWorksCusts$BikeBuyer, times = 1, p = 0.7, list = FALSE)
+training = finalAdvWorksCusts[partition,] # Create the training sample
+dim(training)
+test = finalAdvWorksCusts[-partition,] # Create the test sample
+dim(test)
+
+#Transform Variable
+num_cols = c('YearlyIncome','log_YearlyIncome')
+preProcValues <- preProcess(training[,num_cols], method = c("center", "scale"))
+training[,num_cols] = predict(preProcValues, training[,num_cols])
+test[,num_cols] = predict(preProcValues, test[,num_cols])
+head(training[,num_cols])
+
+#Drop YearlyIncome
+finalAdvWorksCusts$YearlyIncome = NULL
+
+#Logisitic Regression model
+glimpse(finalAdvWorksCusts)
+set.seed(5566)
+logistic_mod = glm(BikeBuyer ~ CountryRegionName + Education +
+                     Occupation + Gender + age + 
+                     MaritalStatus + HomeOwnerFlag + log_YearlyIncome,
+                     family = binomial, data = training)
+
+logistic_mod$coefficients
+
+test$probs = predict(logistic_mod, newdata = test, type = 'response')
+test[1:20, c('BikeBuyer','probs')]
+
+score_model = function(df, threshold){
+  df$score = ifelse(df$probs < threshold, 'no', 'yes')
+  df
+}
+test = score_model(test, 0.5)
+test[1:20, c('BikeBuyer','probs','score')]
+
+logistic.eval <- function(df){
+  # First step is to find the TP, FP, TN, FN cases
+  df$conf = ifelse(df$BikeBuyer == 'yes' & df$score == 'yes', 'TP',
+                   ifelse(df$BikeBuyer == 'yes' & df$score == 'no', 'FN',
+                          ifelse(df$BikeBuyer == 'no' & df$score == 'no'
+                                 , 'TN', 'FP')))
+  # Elements of the confusion matrix
+  TP = length(df[df$conf == 'TP', 'conf'])
+  FP = length(df[df$conf == 'FP', 'conf'])
+  TN = length(df[df$conf == 'TN', 'conf'])
+  FN = length(df[df$conf == 'FN', 'conf'])
+  ## Confusion matrix as data frame
+  out = data.frame(Negative = c(TN, FN), Positive = c(FP, TP))
+  row.names(out) = c('Actual Negative', 'Actual Positive')
+  print(out)
+  # Compute and print metrics
+  P = TP/(TP + FP)
+  R = TP/(TP + FN)
+  F1 = 2*P*R/(P+R)
+  cat('\n')
+  cat(paste('accuracy =', as.character(round((TP + TN)/(TP + TN + FP + FN), 3
+  )), '\n'))
+  cat(paste('precision =', as.character(round(P, 3)), '\n'))
+  cat(paste('recall =', as.character(round(R, 3)), '\n'))
+  cat(paste('F1 =', as.character(round(F1,3)),'\n'))
+  roc_obj <- roc(df$BikeBuyer, df$probs)
+  cat(paste('AUC =', as.character(round(auc(roc_obj),3)),'\n'))
+}
+logistic.eval(test)
+
+ROC_AUC = function(df){
+  options(repr.plot.width=5, repr.plot.height=5)
+  pred_obj = prediction(df$probs, df$BikeBuyer)
+  perf_obj <- performance(pred_obj, measure = "tpr", x.measure = "fpr")
+  AUC = performance(pred_obj,"auc")@y.values[[1]] # Access the AUC from the slot of the S4 object
+  plot(perf_obj)
+  abline(a=0, b= 1, col = 'red')
+  text(0.8, 0.2, paste('AUC = ', as.character(round(AUC, 3))))
+}
+ROC_AUC(test)

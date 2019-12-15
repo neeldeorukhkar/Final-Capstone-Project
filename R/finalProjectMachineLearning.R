@@ -340,7 +340,7 @@ for(t in thresholds) test_threshold(test, t)
 
 
 
-#Prepare out of sample data
+####################Prepare out of sample data###############################
 AW_test <- read.csv("AW_test.csv", header = TRUE, stringsAsFactors = FALSE)
 AW_test <- as_tibble(AW_test)
 glimpse(AW_test)
@@ -367,28 +367,23 @@ AW_test$BirthDate = NULL
 
 AW_test$NumberChildrenAtHome = NULL
 
-
 #NumberCarsOwned
 table(AW_test$NumberCarsOwned)
 
 AW_test$NumberCarsOwned <- ifelse(AW_test$NumberCarsOwned %in% c(0,1),0, ifelse(AW_test$NumberCarsOwned == 2, 1, 2))
 
-AW_test$NumberCarsOwned <- ordered(AW_test$NumberCarsOwned, levels = 0:2,
-                                   labels = c("Zero_One", "Two", "Three_Four"))
+AW_test$NumberCarsOwned <- ordered(AW_test$NumberCarsOwned, levels = 0:2, labels = c("Zero_One", "Two", "Three_Four"))
 
 table(AW_test$NumberCarsOwned)
-
 
 #TotalChildren
 table(AW_test$TotalChildren)
 
 AW_test$TotalChildren <- ifelse(AW_test$TotalChildren %in% c(0,1),0, ifelse(AW_test$TotalChildren == 2, 1, 2))
 
-AW_test$TotalChildren <- ordered(AW_test$TotalChildren, levels = 0:2,
-                                 labels = c("Low", "Medium", "High"))
+AW_test$TotalChildren <- ordered(AW_test$TotalChildren, levels = 0:2,labels = c("Low", "Medium", "High"))
 
 table(AW_test$TotalChildren)
-
 
 #Create Log
 AW_test[,c('log_YearlyIncome')] = log(AW_test[,c('YearlyIncome')])
@@ -403,4 +398,6 @@ AW_test$probs = predict(logistic_mod_w, newdata = AW_test, type = 'response')
 AW_test[1:20, c('probs')]
 AW_test = score_model(AW_test, 0.5)
 
-write.csv(AW_test[,c('CustomerID','score')],"prediction.csv")
+#write.csv(AW_test[,c('CustomerID','score')],"prediction.csv")
+
+#########################################################################################

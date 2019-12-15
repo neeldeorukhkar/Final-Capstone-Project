@@ -247,6 +247,64 @@ head(training[,num_cols])
 #Drop YearlyIncome
 finalAdvWorksCusts$YearlyIncome = NULL
 
+#########################################################################################
+#Feature Selection. Tuning the model to get the most important features
+#########################################################################################
+library(MASS)
+glimpse(finalAdvWorksCusts)
+
+featureSelectionDF <- finalAdvWorksCusts
+num_cols = c('log_YearlyIncome','age')
+preProcValues <- preProcess(featureSelectionDF[,num_cols], method = c("center", "scale"))
+featureSelectionDF[,num_cols] = predict(preProcValues, featureSelectionDF[,num_cols])
+head(featureSelectionDF[,num_cols])
+
+featureSelectionDF$CustomerID = NULL
+glimpse(featureSelectionDF)
+dummies = dummyVars(BikeBuyer ~ . , data = featureSelectionDF)
+featureSelectionDF_dummies = data.frame(predict(dummies, newdata = featureSelectionDF))
+head(featureSelectionDF_dummies)
+names(featureSelectionDF_dummies)
+dim(featureSelectionDF_dummies)
+
+#Check Near Zero Variance
+near_zero = nearZeroVar(featureSelectionDF_dummies, freqCut = 95/5, uniqueCut = 10, saveMetrics = TRUE)
+low_variance_cols <- near_zero[(near_zero$zeroVar == TRUE) | (near_zero$nzv == TRUE), ]
+low_variance_cols
+
+#As you can see, there are no Near Zero Variance Features
+
+#Get Variable Importance
+BikeBuyer_factor = as.factor(featureSelectionDF[,'BikeBuyer'])
+weights = ifelse(featureSelectionDF$BikeBuyer == 'yes', 0.66, 0.34)
+
+fitControl = trainControl(method = 'cv',
+                          number = 10,
+                          classProbs = TRUE,
+                          summaryFunction = prSummary)
+
+set.seed(9999)
+
+cv_mod_recall = train(x = featureSelectionDF_dummies, y = BikeBuyer_factor,
+                      method = "glmnet",
+                      weights = weights,
+                      metric="Recall",
+                      trControl = fitControl)
+
+var_imp = varImp(cv_mod_recall)
+var_imp
+
+options(repr.plot.width=8, repr.plot.height=5)
+plot(var_imp, top = 27)
+
+#Selection Variables with Var Imp > 4
+var_imp$importance$Imp = (var_imp$importance$Overall > 4.0)
+var_imp$importance[var_imp$importance$Imp == TRUE,]
+row.names(var_imp$importance[var_imp$importance$Imp == TRUE,])
+
+###########################################################################################
+
+
 #Logisitic Regression model
 glimpse(training)
 
@@ -394,10 +452,11 @@ AW_test[,num_cols] = predict(preProcValues, AW_test[,num_cols])
 AW_test$YearlyIncome = NULL
 glimpse(AW_test)
 
+
+#Predict using Weighted Logit Model
 AW_test$probs = predict(logistic_mod_w, newdata = AW_test, type = 'response')
 AW_test[1:20, c('probs')]
 AW_test = score_model(AW_test, 0.5)
 
 #write.csv(AW_test[,c('CustomerID','score')],"prediction.csv")
 
-#########################################################################################
